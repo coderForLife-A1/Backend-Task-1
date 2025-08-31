@@ -4,6 +4,6 @@
 2. POST /to-dos → Adds a new task with a unique ID.
 3. DELETE /to-dos/:id → Deletes a task by its ID.
 This demonstrates basic CRUD operations:
-o Create → Add a task
-o Read → View all tasks
-o Delete → Remove a task
+- Create → Add a task
+- Read → View all tasks
+- Delete → Remove a task
