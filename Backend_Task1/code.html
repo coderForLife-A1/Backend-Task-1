@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Task Manager - In-Memory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .task-item {
+            transition: all 0.3s ease;
+        }
+        .task-item:hover {
+            transform: scale(1.02);
+        }
+        .completed {
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+        .priority-high {
+            border-left: 5px solid #ef4444;
+        }
+        .priority-medium {
+            border-left: 5px solid #facc15;
+        }
+        .priority-low {
+            border-left: 5px solid #10b981;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-4">
+    <div class="max-w-4xl mx-auto">
+        <header class="text-center mb-8">
+            <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/72112330-b28b-4fe4-a5f2-20f13b8bc86b.png" alt="Modern task management interface with pinned note icons and productivity charts on a clean minimalistic desk setup" class="w-full h-64 object-cover rounded-lg shadow-lg mb-6" onerror="this.style.display='none'" />
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">In-Memory Task Manager</h1>
+            <p class="text-gray-600 text-lg">A simple, client-side task management system</p>
+        </header>
+
+        <div class="bg-white rounded-lg shadow-xl p-6 mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Add New Task</h2>
+            <form id="taskForm" class="space-y-4">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-1">
+                        <label for="task" class="block text-sm font-medium text-gray-700 mb-1">Task Description</label>
+                        <input type="text" id="task" name="task" required
+                               class="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               placeholder="Enter your task here..." />
+                    </div>
+                    <div>
+                        <label for="priority" class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                        <select id="priority" name="priority" class="p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md transition duration-300 ease-in-out transform hover:scale-105">
+                    Add Task
+                </button>
+            </form>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-xl p-6">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Task List</h2>
+            <div class="flex justify-between items-center mb-4">
+                <p class="text-gray-600">Total tasks: <span id="taskCount">0</span></p>
+                <button id="clearAllBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">
+                    Clear All Tasks
+                </button>
+            </div>
+            <div id="taskList" class="space-y-3">
+                <!-- Tasks will be populated here -->
+            </div>
+            <div id="emptyState" class="text-center py-12 text-gray-500">
+                <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/8eb1f59e-5500-4473-a7ac-12904944881d.png" alt="Empty task list illustration showing a clipboard with no items and motivational text encouraging task creation" class="w-48 h-48 object-contain mx-auto mb-4" onerror="this.style.display='none'" />
+                <p class="text-xl mb-2">No tasks yet!</p>
+                <p>Add a task above to get started.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // In-memory storage for tasks (resets on page reload)
+        let tasks = [];
+        let nextId = 1;
+
+        // DOM elements
+        const taskForm = document.getElementById('taskForm');
+        const taskList = document.getElementById('taskList');
+        const taskCount = document.getElementById('taskCount');
+        const emptyState = document.getElementById('emptyState');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+
+        // Function to render all tasks
+        function renderTasks() {
+            taskList.innerHTML = '';
+            if (tasks.length === 0) {
+                emptyState.style.display = 'block';
+            } else {
+                emptyState.style.display = 'none';
+                tasks.forEach(task => {
+                    const taskItem = document.createElement('div');
+                    taskItem.className = `task-item bg-gray-50 p-4 rounded-md ${task.priority ? `priority-${task.priority}` : ''} fade-in`;
+                    taskItem.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3 flex-1">
+                                <input type="checkbox" class="completion-checkbox w-5 h-5 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500" data-id="${task.id}" />
+                                <span class="task-text flex-1 ${task.completed ? 'completed' : ''}">${task.task}</span>
+                                <span class="priority-badge px-2 py-1 text-xs font-medium rounded-full 
+                                    ${task.priority === 'high' ? 'bg-red-100 text-red-800' : 
+                                      task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' : 
+                                      'bg-green-100 text-green-800'}">
+                                    ${task.priority || 'None'}
+                                </span>
+                            </div>
+                            <button class="delete-btn bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md transition duration-200" data-id="${task.id}">
+                                Delete
+                            </button>
+                        </div>
+                    `;
+                    taskList.appendChild(taskItem);
+                });
+            }
+            updateTaskCount();
+        }
+
+        // Function to update task count
+        function updateTaskCount() {
+            const total = tasks.length;
+            const completed = tasks.filter(task => task.completed).length;
+            taskCount.textContent = `${total} (${completed} completed)`;
+        }
+
+        // Event listener for adding tasks (POST equivalent)
+        taskForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const task = formData.get('task').trim();
+            const priority = formData.get('priority');
+            
+            if (!task) {
+                alert('Please enter a task description.');
+                return;
+            }
+            
+            const newTask = {
+                id: nextId++,
+                task: task,
+                priority: priority,
+                completed: false
+            };
+            tasks.push(newTask);
+            renderTasks();
+            this.reset();
+            
+            // Removed alert popup on task add
+            // if (typeof showNotification === 'function') {
+            //     showNotification('Task added successfully!', 'success');
+            // }
+        });
+
+        // Event delegation for delete buttons (DELETE equivalent)
+        taskList.addEventListener('click', function(e) {
+            if (e.target.classList.contains('delete-btn')) {
+                const id = parseInt(e.target.dataset.id);
+                const index = tasks.findIndex(task => task.id === id);
+                if (index !== -1) {
+                    tasks.splice(index, 1);
+                    renderTasks();
+                    if (typeof showNotification === 'function') {
+                        showNotification('Task deleted successfully!', 'error');
+                    }
+                }
+            }
+            
+            if (e.target.classList.contains('completion-checkbox')) {
+                const id = parseInt(e.target.dataset.id);
+                const task = tasks.find(task => task.id === id);
+                if (task) {
+                    task.completed = e.target.checked;
+                    const taskText = e.target.nextElementSibling;
+                    if (task.completed) {
+                        taskText.classList.add('completed');
+                    } else {
+                        taskText.classList.remove('completed');
+                    }
+                    updateTaskCount();
+                }
+            }
+        });
+
+        // Clear all tasks
+        clearAllBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to clear all tasks? This action cannot be undone.')) {
+                tasks = [];
+                nextId = 1;
+                renderTasks();
+                if (typeof showNotification === 'function') {
+                    showNotification('All tasks cleared!', 'warning');
+                }
+            }
+        });
+
+        // Simple notification system (can be expanded)
+        function showNotification(message, type) {
+            // This could be replaced with a proper toast notification library
+            alert(`${type.toUpperCase()}: ${message}`);
+        }
+
+        // Initial render
+        renderTasks();
+    </script>
+</body>
+</html>
